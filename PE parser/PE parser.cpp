@@ -40,7 +40,6 @@ LPVOID getHandleToMappedFile(char* path)
 
 /// <summary>Print the image file header metadata</summary>
 /// <param name="printImageFileHeaderMetadata">Pointer to the image file header</param>  
-/// <returns>Handle to the mapped file</returns>  
 void printImageFileHeaderMetadata(PIMAGE_FILE_HEADER ptrImageFileHeader)
 {
 	cout << "FileHeader.Machine: " << ptrImageFileHeader->Machine << endl;
@@ -75,6 +74,68 @@ void printPEMetaData(DWORD imageBase)
 	printImageOptionalHeaderMetadata(ptrImageOptionalHeader);
 }
 
+PIMAGE_SECTION_HEADER getSectionHeaderByRVA(DWORD RVA, PIMAGE_NT_HEADERS ptrImageNTHeader)
+{
+	//Get pointer to the first section
+	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION
+
+}
+
+void printPEImports(DWORD imageBase)
+{
+	PIMAGE_DOS_HEADER ptrImageDosHeader = (PIMAGE_DOS_HEADER)imageBase;
+	PIMAGE_NT_HEADERS32 ptrImageNTHeader = (PIMAGE_NT_HEADERS32)(ptrImageDosHeader->e_lfanew + imageBase);
+	//Get import start RVA
+	DWORD importStartRVA = ptrImageNTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
+	//Get import header
+	PIMAGE_SECTION_HEADER ptrImageImportHeader = getSectionHeaderByRVA(importStartRVA, ptrImageNTHeader);
+
+	// Check if no imports
+	if (!ptrImageImportHeader) {
+		cout << "No imports" << endl;
+		return;
+	}
+
+	// Get the first import descriptor
+	PIMAGE_DATA_DIRECTORY ptrImportsDataDirectory = (PIMAGE_DATA_DIRECTORY)GetDataDirectoryPtr(imageBase, IMAGE_DIRECTORY_ENTRY_IMPORT);
+	PIMAGE_IMPORT_DESCRIPTOR ptrImportDescriptor = (PIMAGE_IMPORT_DESCRIPTOR)(ptrImportsDataDirectory->VirtualAddress + imageBase);
+
+	cout << "Imports: " << endl;
+	cout << "Imports.Section: " << ptrImageImportHeader->Name << endl;
+	//Run over each import descripter
+	while (ptrImportDescriptor->Name != NULL)
+	{
+		cout << "\t" << ptrImportDescriptor->Name << endl;
+		cout << "\tTimeDateStamp: " << ptrImportDescriptor->TimeDateStamp << endl;
+		cout << "\tForwarderChain:  " << ptrImportDescriptor->ForwarderChain << endl;
+		cout << "\tFirst thunk RVA: " << ptrImportDescriptor->FirstThunk << endl;
+
+		// Get the IAT and INT
+		PIMAGE_THUNK_DATA32 thunkINT = (PIMAGE_THUNK_DATA32)(ptrImportDescriptor->OriginalFirstThunk + imageBase);
+		if (!thunkINT)
+			return;
+
+		PIMAGE_THUNK_DATA32 thunkIAT = (PIMAGE_THUNK_DATA32)(ptrImportDescriptor->FirstThunk + imageBase);
+
+		cout << "\tOrdinal  Name" << endl;
+
+		// Run over each function belongs the current dll
+		while (thunkIAT->u1.AddressOfData != 0) {
+			if (thunkIAT->u1.Ordinal & IMAGE_ORDINAL_FLAG)
+				cout << "\t" << IMAGE_ORDINAL(thunkINT->u1.Ordinal);
+			else {
+				PIMAGE_IMPORT_BY_NAME ptrOrdinalName = PIMAGE_IMPORT_BY_NAME(thunkINT->u1.AddressOfData + imageBase);
+				cout << "	" << ptrOrdinalName->Hint << "  " << ptrOrdinalName->Name << " (Bound to: " << thunkIAT->u1.Function << ")";
+			}
+			printf("\n");
+			thunkINT++;
+			thunkIAT++;
+		}
+		printf("\n");
+		ptrImportDescriptor++;
+	}
+	return;
+}
 int main(int argc, char** args)
 {
 	//check that we have path
@@ -91,9 +152,9 @@ int main(int argc, char** args)
 	cout << "-------------------Exploring headers-------------------" << endl;
 	printPEMetaData(imageBase);
 	cout << "-------------------Exploring imports-------------------" << endl;
-	printPEImports(imageBase);
+	//printPEImports(imageBase);
 	cout << "-------------------Exploring Exports-------------------" << endl;
-	printPEExports(imageBase);
+	//printPEExports(imageBase);
 	cout << "Done!" << endl;
 	return 0;
 }
