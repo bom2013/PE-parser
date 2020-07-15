@@ -1,20 +1,49 @@
-// PE parser.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include <iostream>
+#include <Windows.h>
 
-int main()
+using namespace std;
+
+void exitWithError(DWORD errorCode)
 {
-    std::cout << "Hello World!\n";
+	cout << "Error code: " << errorCode << endl;
+	system("pause");
+	ExitProcess(0);
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
+LPVOID getHandleToMappendFile(char* path)
+{
+	//Get handle to PE file
+	HANDLE hPEFile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	//Check errors
+	if (hPEFile == INVALID_HANDLE_VALUE)
+	{
+		exitWithError(GetLastError());
+	}
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+	//Map file to memory
+	HANDLE hPEFileMapped = CreateFileMappingA(hPEFile, NULL, PAGE_READONLY | SEC_IMAGE, 0, 0, NULL);
+	//Check errors
+	if (hPEFileMapped == INVALID_HANDLE_VALUE)
+	{
+		exitWithError(GetLastError());
+	}
+
+	//Get IMAGE_BASE
+	LPVOID fileWiew = MapViewOfFile(hPEFileMapped, FILE_MAP_READ, 0, 0, 0);
+	return fileWiew;
+}
+
+int main(int argc, char** args)
+{
+	//check that we have path
+	if (argc < 2)
+	{
+		cout << "Path is missing";
+		return 0;
+	}
+	char* path = args[1];
+	cout << "Exploring " << path << endl;
+
+	//Get IMAGE_BASE of the PE header after mapping it to the memory
+	DWORD imageBase = (DWORD)getHandleToMappendFile(path);
+}
