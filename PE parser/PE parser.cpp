@@ -32,7 +32,33 @@ LPVOID getHandleToMappendFile(char* path)
 	LPVOID fileWiew = MapViewOfFile(hPEFileMapped, FILE_MAP_READ, 0, 0, 0);
 	return fileWiew;
 }
+void printImageFileHeaderMetadata(PIMAGE_FILE_HEADER ptrImageFileHeader)
+{
+	cout << "FileHeader.Machine: " << ptrImageFileHeader->Machine << endl;
+	cout << "FileHeader.TimeDateStamp: " << ptrImageFileHeader->TimeDateStamp << endl;
+	cout << "FileHeader.NumberOfSections: " << ptrImageFileHeader->NumberOfSections << endl;
 
+}
+void printImageOptionalHeaderMetadata(PIMAGE_OPTIONAL_HEADER ptrImageOptionalHeader)
+{
+	cout << "OptionalHeader.Magic: " << ptrImageOptionalHeader->Magic << endl;
+	cout << "OptionalHeader.AddressOfEntryPoint: " << ptrImageOptionalHeader->AddressOfEntryPoint << endl;
+	cout << "OptionalHeader.SizeOfImage: " << ptrImageOptionalHeader->SizeOfImage << endl;
+	cout << "OptionalHeader.SectionAlignment: " << ptrImageOptionalHeader->SectionAlignment << endl;
+	cout << "OptionalHeader.FileAlignment: " << ptrImageOptionalHeader->FileAlignment << endl;
+	cout << "OptionalHeader.ImageBase: " << ptrImageOptionalHeader->ImageBase << endl;
+}
+void printPEMetaData(DWORD imageBase)
+{
+	PIMAGE_DOS_HEADER ptrImageDosHeader = (PIMAGE_DOS_HEADER)imageBase;
+	PIMAGE_NT_HEADERS32 ptrImageNTHeader = (PIMAGE_NT_HEADERS32)(ptrImageDosHeader->e_lfanew + imageBase);
+	PIMAGE_FILE_HEADER ptrImageFileHeader = (PIMAGE_FILE_HEADER)& ptrImageNTHeader->FileHeader;
+	PIMAGE_OPTIONAL_HEADER32 ptrImageOptionalHeader = (PIMAGE_OPTIONAL_HEADER32)& ptrImageNTHeader->OptionalHeader;
+	cout << "File header metadata:" << endl;
+	printImageFileHeaderMetadata(ptrImageFileHeader);
+	cout << "Optional header metadata:" << endl;
+	printImageOptionalHeaderMetadata(ptrImageOptionalHeader);
+}
 int main(int argc, char** args)
 {
 	//check that we have path
@@ -46,4 +72,5 @@ int main(int argc, char** args)
 
 	//Get IMAGE_BASE of the PE header after mapping it to the memory
 	DWORD imageBase = (DWORD)getHandleToMappendFile(path);
+	printPEMetaData(imageBase);
 }
