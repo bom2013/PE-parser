@@ -45,7 +45,7 @@ LPVOID getHandleToMappedFile(char* path)
 }
 
 /// <summary>Print the image file header metadata</summary>
-/// <param name="printImageFileHeaderMetadata">Pointer to the image file header</param>  
+/// <param name="ptrImageFileHeader">Pointer to the image file header</param>  
 void printImageFileHeaderMetadata(PIMAGE_FILE_HEADER ptrImageFileHeader)
 {
 	cout << "\tFileHeader.Machine: " << ptrImageFileHeader->Machine << endl;
